@@ -17,10 +17,28 @@ export default function SoundButton({ text, audioSrc, onClick }: SoundButtonProp
     // 播放音频
     if (audioSrc) {
       try {
-        const audio = new Audio(audioSrc)
+        const audio = new Audio()
+        audio.crossOrigin = 'anonymous'
+        audio.preload = 'auto'
+        audio.src = audioSrc
+        
+        // 等待音频数据加载完成
+        await new Promise((resolve, reject) => {
+          audio.addEventListener('canplaythrough', resolve, { once: true })
+          audio.addEventListener('error', reject, { once: true })
+          audio.load()
+        })
+        
         await audio.play()
       } catch (error) {
         console.error('音频播放失败:', error)
+        // 尝试直接播放作为备选方案
+        try {
+          const fallbackAudio = new Audio(audioSrc)
+          await fallbackAudio.play()
+        } catch (fallbackError) {
+          console.error('备选播放方案也失败:', fallbackError)
+        }
       }
     }
     
