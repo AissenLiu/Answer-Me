@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-// 使用内存存储访问次数（生产环境建议使用数据库）
-let visitCount = 1000 // 设置初始访问次数
-
-// 用于防止同一IP短时间内重复计数
-const recentVisitors = new Map<string, number>()
-const VISIT_COOLDOWN = 30 * 1000 // 30秒冷却时间
+import { VisitCounter } from '@/lib/redis'
 
 function getClientIP(request: NextRequest): string {
   // 获取真实IP地址
@@ -24,49 +18,55 @@ function getClientIP(request: NextRequest): string {
 }
 
 export async function GET() {
-  // 返回当前访问次数
-  return NextResponse.json({ 
-    visitCount,
-    message: 'success' 
-  })
+  try {
+    // 从Redis获取当前访问次数
+    const visitCount = await VisitCounter.getVisitCount()
+    
+    return NextResponse.json({ 
+      visitCount,
+      message: 'success',
+      source: 'redis'
+    })
+  } catch (error) {
+    console.error('获取访问次数API错误:', error)
+    return NextResponse.json(
+      { error: '获取访问次数失败' },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const clientIP = getClientIP(request)
-    const now = Date.now()
     
     // 检查是否在冷却时间内
-    const lastVisit = recentVisitors.get(clientIP)
-    if (lastVisit && (now - lastVisit) < VISIT_COOLDOWN) {
-      // 在冷却时间内，不增加计数，但返回当前计数
+    const isInCooldown = await VisitCounter.isInCooldown(clientIP)
+    if (isInCooldown) {
+      // 在冷却时间内，不增加计数，返回当前计数
+      const visitCount = await VisitCounter.getVisitCount()
       return NextResponse.json({ 
         visitCount,
         message: 'cooldown',
-        cooldownTime: VISIT_COOLDOWN - (now - lastVisit)
+        source: 'redis'
       })
     }
     
     // 增加访问次数
-    visitCount += 1
+    const visitCount = await VisitCounter.incrementVisitCount()
     
     // 记录访问时间
-    recentVisitors.set(clientIP, now)
+    await VisitCounter.recordVisit(clientIP)
     
-    // 清理过期的访问记录（每100次访问清理一次）
+    // 定期清理过期记录（每100次访问清理一次）
     if (visitCount % 100 === 0) {
-      const toDelete: string[] = []
-      recentVisitors.forEach((time, ip) => {
-        if (now - time > VISIT_COOLDOWN) {
-          toDelete.push(ip)
-        }
-      })
-      toDelete.forEach(ip => recentVisitors.delete(ip))
+      await VisitCounter.cleanupExpiredVisitors()
     }
     
     return NextResponse.json({ 
       visitCount,
       message: 'incremented',
+      source: 'redis',
       clientIP: clientIP.replace(/\d+$/, 'xxx') // 隐私保护，隐藏IP最后部分
     })
     
