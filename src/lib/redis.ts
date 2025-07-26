@@ -6,9 +6,8 @@ if (process.env.REDIS_REDIS_URL) {
   // Vercel Redis连接
   redis = new Redis(process.env.REDIS_REDIS_URL, {
     maxRetriesPerRequest: 3,
-    retryDelayOnFailover: 100,
     enableReadyCheck: false,
-    maxRetriesPerRequest: null,
+    lazyConnect: true,
   })
 } else {
   // 开发环境或无Redis时的备用
