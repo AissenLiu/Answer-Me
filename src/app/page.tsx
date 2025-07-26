@@ -1,8 +1,11 @@
 'use client'
 
 import SoundButton from '@/components/SoundButton'
+import { useVisitCounter } from '@/hooks/useVisitCounter'
 
 export default function Home() {
+  const { visitCount, isLoading } = useVisitCounter()
+  
   const buttons = [
     { id: 'answer-me', text: '回答我', audioSrc: '/audio/answer-me.mp3' },
     { id: 'look-in-eyes', text: 'look in my eyes', audioSrc: '/audio/look-in-my-eyes.mp3' },
@@ -37,9 +40,16 @@ export default function Home() {
         ))}
       </div>
       
-      <div className="mt-8 sm:mt-12 text-center text-gray-500">
+      <div className="mt-8 sm:mt-12 text-center text-gray-500 space-y-2">
         <p className="text-xs sm:text-sm">
           点击方块播放音频 🎵
+        </p>
+        <p className="text-xs text-gray-400">
+          {isLoading ? (
+            <span className="animate-pulse">加载中...</span>
+          ) : (
+            <span>访问次数: {visitCount.toLocaleString()}</span>
+          )}
         </p>
       </div>
     </main>
