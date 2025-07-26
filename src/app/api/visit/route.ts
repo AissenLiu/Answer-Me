@@ -55,11 +55,13 @@ export async function POST(request: NextRequest) {
     
     // 清理过期的访问记录（每100次访问清理一次）
     if (visitCount % 100 === 0) {
-      for (const [ip, time] of recentVisitors.entries()) {
+      const toDelete: string[] = []
+      recentVisitors.forEach((time, ip) => {
         if (now - time > VISIT_COOLDOWN) {
-          recentVisitors.delete(ip)
+          toDelete.push(ip)
         }
-      }
+      })
+      toDelete.forEach(ip => recentVisitors.delete(ip))
     }
     
     return NextResponse.json({ 
