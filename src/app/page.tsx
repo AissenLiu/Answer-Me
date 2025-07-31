@@ -22,7 +22,7 @@ export default function Home() {
     <main className="min-h-screen bg-yellow-100 flex flex-col items-center justify-center p-4 sm:p-8">
       <div className="text-center mb-8 sm:mb-12">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-2 sm:mb-4">
-          Answer Me
+          最强嘴替
         </h1>
         <p className="text-base sm:text-lg text-gray-600">
           点击方块播放音频
